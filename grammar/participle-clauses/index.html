@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Participle clauses</title>
+<link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<style>
+  :root{
+    --bg:#0f1116;
+    --card:#1a1d27;
+    --border:#2b2f3a;
+    --text:#e8e9ee;
+    --muted:#9aa0ad;
+    --accent:#5b8def;
+    --green:#2fbf71;
+    --green-bg:#12321f;
+    --green-text:#c9f6dc;
+    --red:#e6534a;
+    --red-bg:#3a1616;
+    --red-text:#ffd0cc;
+    --input-bg:#12141b;
+  }
+  html[data-theme="light"]{
+    --bg:#f4f5f8;
+    --card:#ffffff;
+    --border:#dfe2ea;
+    --text:#1b1d24;
+    --muted:#6b7180;
+    --accent:#3763d6;
+    --green:#1f9d5c;
+    --green-bg:#e4f8ec;
+    --green-text:#0f5c33;
+    --red:#d63c33;
+    --red-bg:#fdeceb;
+    --red-text:#8a231c;
+    --input-bg:#f9f9fb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 16px 60px;
+    transition:background .2s, color .2s;
+  }
+  .wrap{max-width:800px;margin:0 auto;}
+  h1{text-align:center;font-size:1.5rem;margin-bottom:4px;}
+  .sub{text-align:center;color:var(--muted);font-size:0.9rem;margin-bottom:20px;}
+  .top-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5;
+    border-bottom:1px solid var(--border);margin-bottom:16px;
+  }
+  #timer{
+    font-size:1.3rem;font-weight:700;padding:6px 14px;border-radius:8px;
+    background:var(--card);border:1px solid var(--border);min-width:80px;text-align:center;
+  }
+  #timer.warn{color:var(--red);border-color:var(--red);}
+  #score{font-size:1rem;color:var(--muted);}
+  #theme-toggle{
+    background:var(--card);color:var(--text);border:1px solid var(--border);
+    padding:6px 12px;border-radius:8px;font-size:0.85rem;cursor:pointer;
+  }
+  .item{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:13px 16px;margin-bottom:10px;
+  }
+  .sentence{font-size:1.05rem;line-height:2.2;}
+  .num{color:var(--muted);font-size:0.85rem;margin-right:6px;}
+  .hint{color:var(--muted);font-weight:600;margin-left:2px;}
+  input.answer{
+    width:190px;max-width:100%;padding:5px 8px;border-radius:8px;border:1px solid var(--border);
+    background:var(--input-bg);color:var(--text);font-size:1rem;text-align:center;
+    outline:none;font-family:inherit;margin:0 3px;
+    transition:background .15s,border-color .15s;
+  }
+  input.answer:focus{border-color:var(--accent);}
+  input.answer.correct{background:var(--green-bg);border-color:var(--green);color:var(--green-text);}
+  input.answer.incorrect{background:var(--red-bg);border-color:var(--red);color:var(--red-text);}
+  input.answer:disabled{opacity:0.8;}
+  /* Correct answers are in the markup but stay hidden until the pop-up is closed after time is up */
+  .reveal{display:none;margin-top:6px;font-size:0.9rem;color:var(--green-text);
+    background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:6px 10px;}
+  body.show-answers .reveal{display:block;}
+  #check-btn{
+    display:block;width:100%;background:var(--accent);color:#fff;border:none;
+    padding:13px 18px;border-radius:10px;font-size:1rem;font-weight:600;
+    cursor:pointer;margin-top:16px;
+  }
+  #check-btn:hover{opacity:0.9;}
+  #check-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  #finish-overlay{
+    display:none;position:fixed;inset:0;background:rgba(10,11,15,0.55);
+    align-items:center;justify-content:center;z-index:20;
+  }
+  #finish-box{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:28px 30px;text-align:center;max-width:340px;color:var(--text);
+  }
+  #finish-emoji{font-size:3rem;line-height:1;margin-bottom:6px;}
+  #finish-box h2{margin-top:0;margin-bottom:4px;}
+  #finish-box p{color:var(--muted);}
+  button.primary{
+    background:var(--accent);color:#fff;border:none;padding:10px 24px;
+    border-radius:8px;font-size:0.95rem;cursor:pointer;margin-top:10px;
+  }
+  button.primary:hover{opacity:0.9;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Participle clauses</h1>
+  <p class="sub">Open the brackets using the correct participle clause, then press Check. You have 5 minutes.</p>
+
+  <div class="top-bar">
+    <div id="timer">05:00</div>
+    <div id="score">0 / 15 correct</div>
+    <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+  </div>
+
+  <div id="quiz"></div>
+  <button id="check-btn" onclick="checkAll()">Check</button>
+</div>
+
+<div id="finish-overlay">
+  <div id="finish-box">
+    <div id="finish-emoji">🫠</div>
+    <h2 id="finish-title">Time's up!</h2>
+    <p id="final-score"></p>
+    <button class="primary" onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script>
+// "{}" marks the gap, "hint" is the verb in brackets, "answers" lists every accepted variant.
+const baseData = [
+  { text: "{} home after work, I bumped into an old colleague I hadn't seen for years.",
+    hint: "(Walk)", answers: ["Walking"] },
+  { text: "{} in the IT industry for almost a decade, she knows exactly what employers expect from developers.",
+    hint: "(Work)", answers: ["Having worked"] },
+  { text: "{} just outside the city centre, the hotel offers easy access to all the main attractions.",
+    hint: "(Locate)", answers: ["Located"] },
+  { text: "{} about the potential risks, the company decided to postpone the launch.",
+    hint: "(Warn)", answers: ["Having been warned"] },
+  { text: "{} how to respond to the unexpected question, he simply changed the subject.",
+    hint: "(Not / know)", answers: ["Not knowing"] },
+  { text: "{} all the necessary security checks, the team was finally given access to the system.",
+    hint: "(Complete)", answers: ["Having completed"] },
+  { text: "{} to make everyday tasks easier, the new application has quickly gained popularity among users.",
+    hint: "(Design)", answers: ["Designed"] },
+  { text: "{} in traffic for over an hour, we decided to cancel our dinner reservation.",
+    hint: "(Stick)", answers: ["Having been stuck"] },
+  { text: "{} at the figures more closely, I realised that we'd been overestimating our monthly expenses.",
+    hint: "(Look)", answers: ["Looking", "Having looked"] },
+  { text: "{} by colleagues who were constantly competing with one another, she found it difficult to enjoy her job.",
+    hint: "(Surround)", answers: ["Surrounded"] },
+  { text: "{} with a situation like this before, the manager wasn't sure what to do.",
+    hint: "(Never / be)", answers: ["Having never been", "Never having been"] },
+  { text: "{} very little information about the project, the new employees struggled to meet the client's expectations.",
+    hint: "(Give)", answers: ["Having been given"] },
+  { text: "{} that the deadline was unrealistic, the project manager decided to discuss alternative arrangements with the client.",
+    hint: "(Realise)", answers: ["Realising", "Realizing"] },
+  { text: "{} several months looking for a suitable flat, they were relieved to finally find somewhere within their budget.",
+    hint: "(Spend)", answers: ["Having spent"] },
+  { text: "Recently {} to include several new features, the software is now much easier to navigate.",
+    hint: "(update)", answers: ["updated"] }
+];
+
+// Fisher-Yates shuffle: new order on every page load
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+const data = shuffle(baseData);
+
+const scoreMessages = {
+  15: ["💎", "Outstanding performance!"],
+  14: ["🏅", "Almost there!"],
+  13: ["⚡", "Excellent job!"],
+  12: ["🎯", "Great progress!"],
+  11: ["🐬", "Very good effort!"],
+  10: ["🌻", "You're doing well!"],
+  9:  ["🦊", "Good work!"],
+  8:  ["🎈", "Nice attempt!"],
+  7:  ["🐨", "A decent effort!"],
+  6:  ["🧩", "Getting the hang of it!"],
+  5:  ["🐝", "You're improving!"],
+  4:  ["🍀", "Good try!"],
+  3:  ["🐣", "A fresh start!"],
+  2:  ["🌱", "Every little step counts!"],
+  1:  ["🐌", "Keep going!"],
+  0:  ["🫠", "More practice needed!"]
+};
+
+// Not case sensitive; extra spaces and punctuation are ignored. Spelling must otherwise be exact.
+function normalize(str){
+  return str.toLowerCase().replace(/[’‘]/g, "'").replace(/[.,!?;:"()]/g, "").replace(/\s+/g, " ").trim();
+}
+
+const quizEl = document.getElementById("quiz");
+let correctCount = 0;
+let timeLeft = 300; // 5 minutes
+let timerId = null;
+const inputs = [];
+
+data.forEach((item, idx) => {
+  const row = document.createElement("div");
+  row.className = "item";
+
+  const sentence = document.createElement("div");
+  sentence.className = "sentence";
+
+  const num = document.createElement("span");
+  num.className = "num";
+  num.textContent = (idx + 1) + ".";
+  sentence.appendChild(num);
+
+  const parts = item.text.split("{}");
+  sentence.appendChild(document.createTextNode(parts[0]));
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "answer";
+  input.autocomplete = "off";
+  input.autocapitalize = "off";
+  input.spellcheck = false;
+  input.placeholder = "participle clause";
+  // No live validation: colours appear only after Check / when time runs out
+  input.addEventListener("input", () => input.classList.remove("correct", "incorrect"));
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter"){
+      e.preventDefault();
+      const next = inputs[idx + 1];
+      if (next) next.input.focus();
+    }
+  });
+  sentence.appendChild(input);
+
+  const hint = document.createElement("span");
+  hint.className = "hint";
+  hint.textContent = item.hint;
+  sentence.appendChild(hint);
+
+  sentence.appendChild(document.createTextNode(parts[1]));
+
+  // Hidden until the pop-up is closed after time is up
+  const reveal = document.createElement("div");
+  reveal.className = "reveal";
+  reveal.textContent = "Correct answer: " + item.answers.join(" OR ");
+
+  row.appendChild(sentence);
+  row.appendChild(reveal);
+  quizEl.appendChild(row);
+  inputs.push({ input, item });
+});
+
+function checkAll(){
+  let count = 0;
+  inputs.forEach(({ input, item }) => {
+    const typed = normalize(input.value);
+    if (typed === ""){
+      input.classList.remove("correct", "incorrect");
+      return;
+    }
+    const ok = item.answers.some(a => normalize(a) === typed);
+    if (ok) count++;
+    input.classList.toggle("correct", ok);
+    input.classList.toggle("incorrect", !ok);
+  });
+  correctCount = count;
+  document.getElementById("score").textContent = correctCount + " / " + data.length + " correct";
+}
+
+function formatTime(t){
+  const m = Math.floor(t / 60).toString().padStart(2, "0");
+  const s = (t % 60).toString().padStart(2, "0");
+  return m + ":" + s;
+}
+
+function tick(){
+  timeLeft--;
+  const timerEl = document.getElementById("timer");
+  timerEl.textContent = formatTime(Math.max(timeLeft, 0));
+  if (timeLeft <= 10) timerEl.classList.add("warn");
+  if (timeLeft <= 0){
+    clearInterval(timerId);
+    endQuiz();
+  }
+}
+
+function endQuiz(){
+  checkAll();
+  // Unanswered gaps are marked red at the end so students see what they missed
+  inputs.forEach(({ input }) => {
+    if (input.value.trim() === "") input.classList.add("incorrect");
+    input.disabled = true;
+  });
+  document.getElementById("check-btn").disabled = true;
+
+  const [emoji, message] = scoreMessages[correctCount] || scoreMessages[0];
+  document.getElementById("finish-emoji").textContent = emoji;
+  document.getElementById("finish-title").textContent = message;
+  document.getElementById("final-score").textContent =
+    "You got " + correctCount + " out of " + data.length + " correct.";
+  document.getElementById("finish-overlay").style.display = "flex";
+}
+
+// Closing the pop-up keeps all answers in place and now reveals the correct answers
+function closePopup(){
+  document.getElementById("finish-overlay").style.display = "none";
+  document.body.classList.add("show-answers");
+}
+
+function toggleTheme(){
+  const html = document.documentElement;
+  const btn = document.getElementById("theme-toggle");
+  if (html.getAttribute("data-theme") === "light"){
+    html.removeAttribute("data-theme");
+    btn.textContent = "☀ Light";
+  } else {
+    html.setAttribute("data-theme", "light");
+    btn.textContent = "🌙 Dark";
+  }
+}
+
+timerId = setInterval(tick, 1000);
+</script>
+</body>
+</html>
