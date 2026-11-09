@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoax (1)</title>
+<link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<style>
+  :root{
+    --bg:#0f1116;
+    --card:#1a1d27;
+    --border:#2b2f3a;
+    --text:#e8e9ee;
+    --muted:#9aa0ad;
+    --accent:#5b8def;
+    --accent-bg:#1b2742;
+    --green:#2fbf71;
+    --green-bg:#12321f;
+    --green-text:#c9f6dc;
+    --red:#e6534a;
+    --red-bg:#3a1616;
+    --red-text:#ffd0cc;
+    --input-bg:#12141b;
+  }
+  html[data-theme="light"]{
+    --bg:#f4f5f8;
+    --card:#ffffff;
+    --border:#dfe2ea;
+    --text:#1b1d24;
+    --muted:#6b7180;
+    --accent:#3763d6;
+    --accent-bg:#e8eefc;
+    --green:#1f9d5c;
+    --green-bg:#e4f8ec;
+    --green-text:#0f5c33;
+    --red:#d63c33;
+    --red-bg:#fdeceb;
+    --red-text:#8a231c;
+    --input-bg:#f9f9fb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 16px 60px;
+    transition:background .2s, color .2s;
+  }
+  .wrap{max-width:1040px;margin:0 auto;}
+  h1{text-align:center;font-size:1.5rem;margin-bottom:4px;}
+  .sub{text-align:center;color:var(--muted);font-size:0.9rem;margin-bottom:20px;}
+  .top-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5;
+    border-bottom:1px solid var(--border);margin-bottom:16px;
+  }
+  #timer{
+    font-size:1.3rem;font-weight:700;padding:6px 14px;border-radius:8px;
+    background:var(--card);border:1px solid var(--border);min-width:80px;text-align:center;
+  }
+  #timer.warn{color:var(--red);border-color:var(--red);}
+  #score{font-size:1rem;color:var(--muted);}
+  #theme-toggle{
+    background:var(--card);color:var(--text);border:1px solid var(--border);
+    padding:6px 12px;border-radius:8px;font-size:0.85rem;cursor:pointer;
+  }
+  .layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+  @media (max-width:860px){ .layout{grid-template-columns:1fr;} }
+  .col-title{font-size:0.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px 2px;}
+  /* Each expression is a card: the number and the expression on one full-width line, the drop box below it */
+  .row{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;margin-bottom:10px;
+  }
+  .word{font-weight:600;margin-bottom:8px;}
+  .slot{
+    min-height:46px;border:2px dashed var(--border);border-radius:10px;
+    padding:6px 10px;display:flex;align-items:center;font-size:0.9rem;
+    color:var(--muted);cursor:pointer;background:var(--input-bg);
+    transition:background .15s,border-color .15s;
+  }
+  .slot.over{border-color:var(--accent);background:var(--accent-bg);}
+  .slot.filled{border-style:solid;color:var(--text);background:var(--card);}
+  .slot.correct{background:var(--green-bg);border-color:var(--green);color:var(--green-text);}
+  .slot.incorrect{background:var(--red-bg);border-color:var(--red);color:var(--red-text);}
+  .slot .placed{width:100%;cursor:grab;}
+  /* Correct answers are in the markup but stay hidden until the pop-up is closed after time is up */
+  .reveal{display:none;margin-top:8px;font-size:0.88rem;color:var(--green-text);
+    background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:6px 10px;}
+  body.show-answers .reveal{display:block;}
+  #pool-col{position:sticky;top:76px;}
+  #pool{
+    display:flex;flex-direction:column;gap:8px;min-height:60px;
+    padding:8px;border:2px dashed transparent;border-radius:10px;
+  }
+  #pool.over{border-color:var(--accent);background:var(--accent-bg);}
+  .chip{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:9px 12px;font-size:0.9rem;cursor:grab;user-select:none;
+  }
+  .chip:hover{border-color:var(--accent);}
+  .chip.selected{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 0 0 2px var(--accent);}
+  .empty-note{color:var(--muted);font-size:0.9rem;padding:8px;}
+  body.locked .slot, body.locked .chip, body.locked .slot .placed{cursor:default;}
+  #check-btn{
+    display:block;width:100%;background:var(--accent);color:#fff;border:none;
+    padding:13px 18px;border-radius:10px;font-size:1rem;font-weight:600;
+    cursor:pointer;margin-top:16px;
+  }
+  #check-btn:hover{opacity:0.9;}
+  #check-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  #finish-overlay{
+    display:none;position:fixed;inset:0;background:rgba(10,11,15,0.55);
+    align-items:center;justify-content:center;z-index:20;
+  }
+  #finish-box{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:28px 30px;text-align:center;max-width:340px;color:var(--text);
+  }
+  #finish-emoji{font-size:3rem;line-height:1;margin-bottom:6px;}
+  #finish-box h2{margin-top:0;margin-bottom:4px;}
+  #finish-box p{color:var(--muted);}
+  button.primary{
+    background:var(--accent);color:#fff;border:none;padding:10px 24px;
+    border-radius:8px;font-size:0.95rem;cursor:pointer;margin-top:10px;
+  }
+  button.primary:hover{opacity:0.9;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Hoax (1)</h1>
+  <p class="sub">Match each expression with its definition: click a definition, then click the box under an expression (or drag and drop). Press Check when ready. You have 5 minutes.</p>
+
+  <div class="top-bar">
+    <div id="timer">05:00</div>
+    <div id="score">0 / 15 correct</div>
+    <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+  </div>
+
+  <div class="layout">
+    <div>
+      <p class="col-title">Expressions</p>
+      <div id="rows"></div>
+    </div>
+    <div id="pool-col">
+      <p class="col-title">Definitions</p>
+      <div id="pool"></div>
+    </div>
+  </div>
+
+  <button id="check-btn" onclick="checkAll()">Check</button>
+</div>
+
+<div id="finish-overlay">
+  <div id="finish-box">
+    <div id="finish-emoji">🫤</div>
+    <h2 id="finish-title">Time's up!</h2>
+    <p id="final-score"></p>
+    <button class="primary" onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script>
+// Each expression's index is also the id of its correct definition.
+const baseData = [
+  { word: "to deceive",
+    def: "to make someone believe something that isn't true" },
+  { word: "to pretend",
+    def: "to act as if something is true when it isn't" },
+  { word: "to come clean",
+    def: "to tell the truth about something you've hidden" },
+  { word: "to doubt",
+    def: "to feel unsure whether something is true" },
+  { word: "to conceal (your feelings / the truth)",
+    def: "to hide something from others" },
+  { word: "to plot something",
+    def: "to secretly plan something, usually dishonest or harmful" },
+  { word: "not to buy something",
+    def: "not to believe or accept something" },
+  { word: "to speak your mind",
+    def: "to say what you really think" },
+  { word: "fishy",
+    def: "seeming dishonest, suspicious or wrong" },
+  { word: "to play dumb",
+    def: "to pretend not to know or understand something" },
+  { word: "a plausible excuse",
+    def: "a reason that seems believable" },
+  { word: "to feign interest",
+    def: "to pretend to be interested" },
+  { word: "to make up",
+    def: "to invent a story, excuse or information that isn't true" },
+  { word: "a scheme",
+    def: "a secret or dishonest plan" },
+  { word: "to take something with a grain of salt",
+    def: "not to believe something completely; to be sceptical about it" }
+];
+
+// Fisher-Yates shuffle: new order on every page load
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const N = baseData.length;
+const ids = baseData.map((_, i) => i);
+const wordOrder = shuffle(ids);   // order of the (fixed) expressions on the left
+const poolOrder = shuffle(ids);   // order of the definitions in the pool
+
+const slots = Array(N).fill(null);       // slots[p] = id of the definition placed under wordOrder[p]
+const slotState = Array(N).fill(null);   // null | "correct" | "incorrect"
+let selected = null;                     // id of the definition currently picked up
+let locked = false;
+
+const scoreMessages = {
+  15: ["💫", "Absolutely brilliant!"],
+  14: ["🏆", "Superb effort!"],
+  13: ["⚡", "Excellent!"],
+  12: ["🎨", "Really good work!"],
+  11: ["🌼", "Well done!"],
+  10: ["🦊", "Good job!"],
+  9:  ["🎈", "Nice effort!"],
+  8:  ["🐬", "Quite good!"],
+  7:  ["🪴", "You're getting better!"],
+  6:  ["🧸", "A fair attempt!"],
+  5:  ["🐝", "Keep making progress!"],
+  4:  ["🍀", "Don't lose heart!"],
+  3:  ["🐥", "You're off to a start!"],
+  2:  ["🌱", "Every attempt counts!"],
+  1:  ["🐌", "Keep practising!"],
+  0:  ["🫤", "Needs a bit more work!"]
+};
+
+const rowsEl = document.getElementById("rows");
+const poolEl = document.getElementById("pool");
+
+function posOf(id){ return slots.indexOf(id); }
+
+// Put definition `id` into slot p. A displaced definition swaps places with it
+// (if it came from another slot) or goes back to the pool.
+function placeId(id, p){
+  if (locked) return;
+  const from = posOf(id);
+  const occupant = slots[p];
+  if (from === p) return;
+  if (from !== -1){ slots[from] = occupant; slotState[from] = null; }
+  slots[p] = id;
+  slotState[p] = null;
+  selected = null;
+  render();
+}
+
+function unplace(id){
+  if (locked) return;
+  const from = posOf(id);
+  if (from !== -1){ slots[from] = null; slotState[from] = null; }
+  selected = null;
+  render();
+}
+
+function render(){
+  // Rows: fixed expressions with drop boxes
+  rowsEl.innerHTML = "";
+  wordOrder.forEach((wid, p) => {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const word = document.createElement("div");
+    word.className = "word";
+    word.textContent = (p + 1) + ". " + baseData[wid].word;
+
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    if (slots[p] !== null) slot.classList.add("filled");
+    if (slotState[p]) slot.classList.add(slotState[p]);
+
+    if (slots[p] !== null){
+      const placed = document.createElement("div");
+      placed.className = "placed";
+      placed.textContent = baseData[slots[p]].def;
+      placed.draggable = !locked;
+      placed.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", String(slots[p]));
+        e.dataTransfer.effectAllowed = "move";
+      });
+      slot.appendChild(placed);
+    } else {
+      slot.textContent = "Click or drop a definition here";
+    }
+
+    slot.addEventListener("click", () => {
+      if (locked) return;
+      if (selected !== null){
+        placeId(selected, p);
+      } else if (slots[p] !== null){
+        // pick the definition up again so it can be put somewhere else
+        selected = slots[p];
+        slots[p] = null;
+        slotState[p] = null;
+        render();
+      }
+    });
+    slot.addEventListener("dragover", e => { if (locked) return; e.preventDefault(); slot.classList.add("over"); });
+    slot.addEventListener("dragleave", () => slot.classList.remove("over"));
+    slot.addEventListener("drop", e => {
+      e.preventDefault();
+      slot.classList.remove("over");
+      const id = Number(e.dataTransfer.getData("text/plain"));
+      if (!Number.isNaN(id)) placeId(id, p);
+    });
+
+    // Hidden until the pop-up is closed after time is up
+    const reveal = document.createElement("div");
+    reveal.className = "reveal";
+    reveal.textContent = "Correct answer: " + baseData[wid].def;
+
+    row.appendChild(word);
+    row.appendChild(slot);
+    row.appendChild(reveal);
+    rowsEl.appendChild(row);
+  });
+
+  // Pool: definitions not placed yet (kept in their original shuffled order)
+  poolEl.innerHTML = "";
+  const free = poolOrder.filter(id => posOf(id) === -1);
+  free.forEach(id => {
+    const chip = document.createElement("div");
+    chip.className = "chip" + (selected === id ? " selected" : "");
+    chip.textContent = baseData[id].def;
+    chip.draggable = !locked;
+    chip.addEventListener("click", () => {
+      if (locked) return;
+      selected = (selected === id) ? null : id;
+      render();
+    });
+    chip.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", String(id));
+      e.dataTransfer.effectAllowed = "move";
+    });
+    poolEl.appendChild(chip);
+  });
+  if (free.length === 0){
+    const note = document.createElement("div");
+    note.className = "empty-note";
+    note.textContent = "All definitions are placed.";
+    poolEl.appendChild(note);
+  }
+}
+
+poolEl.addEventListener("dragover", e => { if (locked) return; e.preventDefault(); poolEl.classList.add("over"); });
+poolEl.addEventListener("dragleave", () => poolEl.classList.remove("over"));
+poolEl.addEventListener("drop", e => {
+  e.preventDefault();
+  poolEl.classList.remove("over");
+  const id = Number(e.dataTransfer.getData("text/plain"));
+  if (!Number.isNaN(id)) unplace(id);
+});
+
+let correctCount = 0;
+
+// No live validation: colours appear only after Check / when time runs out
+function checkAll(){
+  let count = 0;
+  wordOrder.forEach((wid, p) => {
+    if (slots[p] === null){ slotState[p] = null; return; }
+    const ok = slots[p] === wid;
+    slotState[p] = ok ? "correct" : "incorrect";
+    if (ok) count++;
+  });
+  correctCount = count;
+  document.getElementById("score").textContent = correctCount + " / " + N + " correct";
+  render();
+}
+
+function formatTime(t){
+  const m = Math.floor(t / 60).toString().padStart(2, "0");
+  const s = (t % 60).toString().padStart(2, "0");
+  return m + ":" + s;
+}
+
+let timeLeft = 300; // 5 minutes
+let timerId = null;
+
+function tick(){
+  timeLeft--;
+  const timerEl = document.getElementById("timer");
+  timerEl.textContent = formatTime(Math.max(timeLeft, 0));
+  if (timeLeft <= 10) timerEl.classList.add("warn");
+  if (timeLeft <= 0){
+    clearInterval(timerId);
+    endQuiz();
+  }
+}
+
+function endQuiz(){
+  selected = null;
+  checkAll();
+  // Empty boxes are marked red at the end so students see what they missed
+  slots.forEach((v, p) => { if (v === null) slotState[p] = "incorrect"; });
+  locked = true;
+  document.body.classList.add("locked");
+  document.getElementById("check-btn").disabled = true;
+  render();
+
+  const [emoji, message] = scoreMessages[correctCount] || scoreMessages[0];
+  document.getElementById("finish-emoji").textContent = emoji;
+  document.getElementById("finish-title").textContent = message;
+  document.getElementById("final-score").textContent =
+    "You got " + correctCount + " out of " + N + " correct.";
+  document.getElementById("finish-overlay").style.display = "flex";
+}
+
+// Closing the pop-up keeps all matches in place and now reveals the correct answers
+function closePopup(){
+  document.getElementById("finish-overlay").style.display = "none";
+  document.body.classList.add("show-answers");
+}
+
+function toggleTheme(){
+  const html = document.documentElement;
+  const btn = document.getElementById("theme-toggle");
+  if (html.getAttribute("data-theme") === "light"){
+    html.removeAttribute("data-theme");
+    btn.textContent = "☀ Light";
+  } else {
+    html.setAttribute("data-theme", "light");
+    btn.textContent = "🌙 Dark";
+  }
+}
+
+render();
+timerId = setInterval(tick, 1000);
+</script>
+</body>
+</html>
