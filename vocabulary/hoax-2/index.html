@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoax (2)</title>
+<link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<style>
+  :root{
+    --bg:#0f1116;
+    --card:#1a1d27;
+    --border:#2b2f3a;
+    --text:#e8e9ee;
+    --muted:#9aa0ad;
+    --accent:#5b8def;
+    --green:#2fbf71;
+    --green-bg:#12321f;
+    --green-text:#c9f6dc;
+    --red:#e6534a;
+    --red-bg:#3a1616;
+    --red-text:#ffd0cc;
+    --input-bg:#12141b;
+  }
+  html[data-theme="light"]{
+    --bg:#f4f5f8;
+    --card:#ffffff;
+    --border:#dfe2ea;
+    --text:#1b1d24;
+    --muted:#6b7180;
+    --accent:#3763d6;
+    --green:#1f9d5c;
+    --green-bg:#e4f8ec;
+    --green-text:#0f5c33;
+    --red:#d63c33;
+    --red-bg:#fdeceb;
+    --red-text:#8a231c;
+    --input-bg:#f9f9fb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 16px 60px;
+    transition:background .2s, color .2s;
+  }
+  .wrap{max-width:860px;margin:0 auto;}
+  h1{text-align:center;font-size:1.5rem;margin-bottom:4px;}
+  .sub{text-align:center;color:var(--muted);font-size:0.9rem;margin-bottom:20px;}
+  .top-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5;
+    border-bottom:1px solid var(--border);margin-bottom:16px;
+  }
+  #timer{
+    font-size:1.3rem;font-weight:700;padding:6px 14px;border-radius:8px;
+    background:var(--card);border:1px solid var(--border);min-width:80px;text-align:center;
+  }
+  #timer.warn{color:var(--red);border-color:var(--red);}
+  #score{font-size:1rem;color:var(--muted);}
+  #theme-toggle{
+    background:var(--card);color:var(--text);border:1px solid var(--border);
+    padding:6px 12px;border-radius:8px;font-size:0.85rem;cursor:pointer;
+  }
+  .item{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:13px 16px;margin-bottom:10px;
+  }
+  /* expression, dash and definition run on one line (wrapping only if the screen is too narrow) */
+  .phrase{font-size:1.05rem;line-height:2.1;}
+  .num{color:var(--muted);font-size:0.85rem;margin-right:6px;}
+  .def{color:var(--muted);font-size:0.95rem;}
+  .reveal{margin-top:6px;}
+  input.answer{
+    width:130px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);
+    background:var(--input-bg);color:var(--text);font-size:1rem;text-align:center;
+    outline:none;font-family:inherit;margin:0 3px;
+    transition:background .15s,border-color .15s;
+  }
+  input.answer:focus{border-color:var(--accent);}
+  input.answer.correct{background:var(--green-bg);border-color:var(--green);color:var(--green-text);}
+  input.answer.incorrect{background:var(--red-bg);border-color:var(--red);color:var(--red-text);}
+  input.answer:disabled{opacity:0.8;}
+  /* Correct answers are in the markup but stay hidden until the pop-up is closed after time is up */
+  .reveal{display:none;font-size:0.9rem;color:var(--green-text);
+    background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:6px 10px;}
+  body.show-answers .reveal{display:block;}
+  #check-btn{
+    display:block;width:100%;background:var(--accent);color:#fff;border:none;
+    padding:13px 18px;border-radius:10px;font-size:1rem;font-weight:600;
+    cursor:pointer;margin-top:16px;
+  }
+  #check-btn:hover{opacity:0.9;}
+  #check-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  #finish-overlay{
+    display:none;position:fixed;inset:0;background:rgba(10,11,15,0.55);
+    align-items:center;justify-content:center;z-index:20;
+  }
+  #finish-box{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:28px 30px;text-align:center;max-width:340px;color:var(--text);
+  }
+  #finish-emoji{font-size:3rem;line-height:1;margin-bottom:6px;}
+  #finish-box h2{margin-top:0;margin-bottom:4px;}
+  #finish-box p{color:var(--muted);}
+  button.primary{
+    background:var(--accent);color:#fff;border:none;padding:10px 24px;
+    border-radius:8px;font-size:0.95rem;cursor:pointer;margin-top:10px;
+  }
+  button.primary:hover{opacity:0.9;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Hoax (2)</h1>
+  <p class="sub">Fill in the missing word in each expression, then press Check. You have 5 minutes.</p>
+
+  <div class="top-bar">
+    <div id="timer">05:00</div>
+    <div id="score">0 / 18 correct</div>
+    <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+  </div>
+
+  <div id="quiz"></div>
+  <button id="check-btn" onclick="checkAll()">Check</button>
+</div>
+
+<div id="finish-overlay">
+  <div id="finish-box">
+    <div id="finish-emoji">🫣</div>
+    <h2 id="finish-title">Time's up!</h2>
+    <p id="final-score"></p>
+    <button class="primary" onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script>
+// "{}" marks a gap; answers = the missing word for each gap, in order.
+const baseData = [
+  { text: "to {}", answers: ["deceive"],
+    def: "to make someone believe something that isn't true" },
+  { text: "to {}", answers: ["pretend"],
+    def: "to act as if something is true when it isn't" },
+  { text: "to come {}", answers: ["clean"],
+    def: "to tell the truth about something you've hidden" },
+  { text: "to {}", answers: ["doubt"],
+    def: "to feel unsure whether something is true" },
+  { text: "to {} your feelings / the truth", answers: ["conceal"],
+    def: "to hide something from others" },
+  { text: "to {} something", answers: ["plot"],
+    def: "to secretly plan something, usually dishonest or harmful" },
+  { text: "not to {} something", answers: ["buy"],
+    def: "not to believe or accept something" },
+  { text: "to speak your {}", answers: ["mind"],
+    def: "to say what you really think" },
+  { text: "{}", answers: ["fishy"],
+    def: "seeming dishonest, suspicious or wrong" },
+  { text: "to play {}", answers: ["dumb"],
+    def: "to pretend not to know or understand something" },
+  { text: "a {} excuse", answers: ["plausible"],
+    def: "a reason that seems believable" },
+  { text: "to {} interest", answers: ["feign"],
+    def: "to pretend to be interested" },
+  { text: "to {} something up", answers: ["make"],
+    def: "to invent a story, excuse or information that isn't true" },
+  { text: "to {} something with a grain of {}", answers: ["take", "salt"],
+    def: "not to believe something completely; to be sceptical about it" },
+  { text: "to {} the truth", answers: ["tell"],
+    def: "to say what is true; not to lie" },
+  { text: "to {} a lie", answers: ["tell"],
+    def: "to say something that isn't true" },
+  { text: "{} honest", answers: ["brutally"],
+    def: "completely honest, even if your words hurt someone" },
+  { text: "to live a {}", answers: ["lie"],
+    def: "to pretend to be someone you aren't or live as if something false were true" }
+];
+
+// Fisher-Yates shuffle: new order on every page load
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+const data = shuffle(baseData);
+
+// The scale has 21 tiers (index 0-20). With 18 items, the number of correct answers is
+// mapped proportionally onto it: 0 is always the lowest tier and only a perfect score reaches the top.
+const scaleTiers = [
+  ["🫣", "Plenty of room to grow!"],
+  ["🐌", "Keep practising!"],
+  ["🌱", "Small steps matter!"],
+  ["🐣", "You're just warming up!"],
+  ["🐢", "Don't lose momentum!"],
+  ["🍀", "A reasonable attempt!"],
+  ["🐝", "You're making progress!"],
+  ["🧩", "Getting the hang of it!"],
+  ["🐨", "A decent effort!"],
+  ["🎈", "You're on the right track!"],
+  ["🦊", "Good work!"],
+  ["🌻", "You're improving!"],
+  ["🐬", "Nice job!"],
+  ["🎨", "That's looking good!"],
+  ["🦋", "Very well done!"],
+  ["🎯", "Great progress!"],
+  ["⚡", "Excellent effort!"],
+  ["🥳", "Fantastic work!"],
+  ["🔥", "Seriously impressive!"],
+  ["🏆", "Almost flawless!"],
+  ["💎", "Absolutely outstanding!"]
+];
+
+function tierFor(correct, total){
+  const top = scaleTiers.length - 1;
+  if (correct <= 0) return 0;
+  if (correct >= total) return top;
+  return Math.min(top - 1, Math.max(1, Math.round(correct / total * top)));
+}
+
+function normalize(str){
+  return str.toLowerCase().replace(/[’‘]/g, "'").trim().replace(/[.,!?;:"()]/g, "").replace(/\s+/g, " ");
+}
+
+const quizEl = document.getElementById("quiz");
+let correctCount = 0;
+let timeLeft = 300; // 5 minutes
+let timerId = null;
+const entries = [];   // { item, gapInputs: [] }
+const allInputs = [];
+
+data.forEach((item, idx) => {
+  const row = document.createElement("div");
+  row.className = "item";
+
+  const phrase = document.createElement("div");
+  phrase.className = "phrase";
+
+  const num = document.createElement("span");
+  num.className = "num";
+  num.textContent = (idx + 1) + ".";
+  phrase.appendChild(num);
+
+  const gapInputs = [];
+  item.text.split("{}").forEach((part, i, arr) => {
+    phrase.appendChild(document.createTextNode(part));
+    if (i < arr.length - 1){
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "answer";
+      input.autocomplete = "off";
+      input.autocapitalize = "off";
+      input.spellcheck = false;
+      input.placeholder = "word";
+      // No live validation: colours appear only after Check / when time runs out
+      input.addEventListener("input", () => input.classList.remove("correct", "incorrect"));
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter"){
+          e.preventDefault();
+          const pos = allInputs.indexOf(input);
+          if (allInputs[pos + 1]) allInputs[pos + 1].focus();
+        }
+      });
+      gapInputs.push(input);
+      allInputs.push(input);
+      phrase.appendChild(input);
+    }
+  });
+
+  // definition on the same line, after a dash
+  const def = document.createElement("span");
+  def.className = "def";
+  def.textContent = " \u2013 " + item.def;
+  phrase.appendChild(def);
+
+  // Hidden until the pop-up is closed after time is up
+  const reveal = document.createElement("div");
+  reveal.className = "reveal";
+  let gi = 0;
+  reveal.textContent = "Correct answer: " + item.text.replace(/\{\}/g, () => item.answers[gi++]);
+
+  row.appendChild(phrase);
+  row.appendChild(reveal);
+  quizEl.appendChild(row);
+  entries.push({ item, gapInputs });
+});
+
+function checkAll(){
+  let count = 0;
+  entries.forEach(({ item, gapInputs }) => {
+    let allCorrect = true;
+    gapInputs.forEach((inp, g) => {
+      const typed = normalize(inp.value);
+      if (typed === ""){
+        inp.classList.remove("correct", "incorrect");
+        allCorrect = false;
+        return;
+      }
+      const ok = typed === normalize(item.answers[g]);
+      inp.classList.toggle("correct", ok);
+      inp.classList.toggle("incorrect", !ok);
+      if (!ok) allCorrect = false;
+    });
+    if (allCorrect) count++;
+  });
+  correctCount = count;
+  document.getElementById("score").textContent = correctCount + " / " + data.length + " correct";
+}
+
+function formatTime(t){
+  const m = Math.floor(t / 60).toString().padStart(2, "0");
+  const s = (t % 60).toString().padStart(2, "0");
+  return m + ":" + s;
+}
+
+function tick(){
+  timeLeft--;
+  const timerEl = document.getElementById("timer");
+  timerEl.textContent = formatTime(Math.max(timeLeft, 0));
+  if (timeLeft <= 10) timerEl.classList.add("warn");
+  if (timeLeft <= 0){
+    clearInterval(timerId);
+    endQuiz();
+  }
+}
+
+function endQuiz(){
+  checkAll();
+  // Unanswered gaps are marked red at the end so students see what they missed
+  allInputs.forEach(inp => {
+    if (inp.value.trim() === "") inp.classList.add("incorrect");
+    inp.disabled = true;
+  });
+  document.getElementById("check-btn").disabled = true;
+
+  const [emoji, message] = scaleTiers[tierFor(correctCount, data.length)];
+  document.getElementById("finish-emoji").textContent = emoji;
+  document.getElementById("finish-title").textContent = message;
+  document.getElementById("final-score").textContent =
+    "You got " + correctCount + " out of " + data.length + " correct.";
+  document.getElementById("finish-overlay").style.display = "flex";
+}
+
+// Closing the pop-up keeps all answers in place and now reveals the correct answers
+function closePopup(){
+  document.getElementById("finish-overlay").style.display = "none";
+  document.body.classList.add("show-answers");
+}
+
+function toggleTheme(){
+  const html = document.documentElement;
+  const btn = document.getElementById("theme-toggle");
+  if (html.getAttribute("data-theme") === "light"){
+    html.removeAttribute("data-theme");
+    btn.textContent = "☀ Light";
+  } else {
+    html.setAttribute("data-theme", "light");
+    btn.textContent = "🌙 Dark";
+  }
+}
+
+timerId = setInterval(tick, 1000);
+</script>
+</body>
+</html>
