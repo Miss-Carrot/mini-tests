@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modals of Deduction - Interactive Quiz</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f0f9ff 50%, #ecfdf5 100%);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.12);
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .timer-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 16px;
+            padding: 12px 20px;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .timer-bar.warning {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            animation: pulse 1s infinite;
+        }
+
+        .timer-bar.expired {
+            background: linear-gradient(90deg, #64748b, #475569);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        #timerDisplay {
+            font-variant-numeric: tabular-nums;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            max-width: 200px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            transition: width 1s linear;
+            width: 100%;
+        }
+
+        .instructions {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            font-size: 0.92rem;
+            color: var(--muted);
+        }
+
+        .instructions strong {
+            color: var(--text);
+        }
+
+        .quiz-area {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .question {
+            margin-bottom: 28px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.3s;
+        }
+
+        .question:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .question.correct {
+            background: rgba(16, 185, 129, 0.06);
+            border-radius: 10px;
+            padding: 16px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-bottom-color: transparent;
+        }
+
+        .question.incorrect {
+            background: rgba(239, 68, 68, 0.06);
+            border-radius: 10px;
+            padding: 16px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-bottom-color: transparent;
+        }
+
+        .q-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .q-text {
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .russian-inline {
+            color: #4338ca;
+            font-weight: 500;
+            background: #eef2ff;
+            padding: 1px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .blank-input {
+            display: inline-block;
+            min-width: 220px;
+            max-width: 100%;
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: var(--text);
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin: 0 4px;
+        }
+
+        .blank-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+            background: white;
+        }
+
+        .blank-input.correct-input {
+            border-color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .blank-input.incorrect-input {
+            border-color: var(--error);
+            background: #fef2f2;
+        }
+
+        .blank-input:disabled {
+            opacity: 0.9;
+            cursor: default;
+        }
+
+        .feedback {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct-fb {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .feedback.incorrect-fb {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .correct-answer {
+            font-weight: 600;
+            color: #047857;
+        }
+
+        .btn-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+            font-family: inherit;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-check {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        }
+
+        .btn-check:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .btn-check:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-reset {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-reset:hover {
+            background: #eef2ff;
+        }
+
+        /* Popup Overlay */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            padding: 20px;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 28px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .overlay.show .popup {
+            transform: scale(1) translateY(0);
+        }
+
+        .popup-emoji {
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+            line-height: 1;
+        }
+
+        .popup-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .popup-score {
+            font-size: 1.15rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .popup-score strong {
+            color: var(--primary);
+            font-size: 1.4rem;
+        }
+
+        .popup-message {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin: 16px 0 24px;
+            font-weight: 500;
+        }
+
+        .popup-scale {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 24px;
+            font-size: 0.75rem;
+        }
+
+        .scale-item {
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            color: var(--muted);
+            opacity: 0.6;
+        }
+
+        .scale-item.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            opacity: 1;
+            font-weight: 600;
+            transform: scale(1.05);
+        }
+
+        .btn-close {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 12px 36px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-close:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+
+        .score-summary {
+            text-align: center;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 1.1rem;
+        }
+
+        .score-summary.show {
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+            padding: 16px;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.5rem; }
+            .blank-input { min-width: 160px; width: 100%; margin: 6px 0; }
+            .q-text { flex-direction: column; align-items: flex-start; }
+            .timer-bar { flex-direction: column; gap: 8px; }
+            .progress-track { max-width: 100%; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Modals of Deduction</h1>
+            <div class="timer-bar" id="timerBar">
+                <span>⏱</span>
+                <span id="timerDisplay">05:00</span>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="instructions">
+            <strong>Instructions:</strong> Translate the Russian fragments into English using appropriate modal verbs of deduction.
+        </div>
+
+        <div class="score-summary" id="scoreSummary"></div>
+
+        <div class="quiz-area" id="quizArea">
+            <!-- Questions will be injected here -->
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-check" id="checkBtn" onclick="checkAnswers()">Check Answers</button>
+        </div>
+
+        <footer>
+            Questions are reshuffled on every page load · Timer does not reset after results
+        </footer>
+    </div>
+
+    <!-- Results Popup -->
+    <div class="overlay" id="overlay">
+        <div class="popup">
+            <div class="popup-emoji" id="popupEmoji">🏆</div>
+            <div class="popup-title" id="popupTitle">Results</div>
+            <div class="popup-score">You scored <strong id="scoreValue">0</strong> / <span id="totalValue">16</span></div>
+            <div class="popup-message" id="popupMessage">Great job!</div>
+            <div class="popup-scale" id="popupScale"></div>
+            <button class="btn-close" onclick="closePopup()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== DATA ==========
+        const questions = [
+            {
+                id: 1,
+                russian: "возможно, оставила",
+                before: "I ",
+                after: " my phone in the taxi. I'll call the driver and check.",
+                accepted: [
+                    "might have left", "may have left", "could have left",
+                    "might've left", "may've left", "could've left"
+                ],
+                display: "might/may/could have left"
+            },
+            {
+                id: 2,
+                russian: "может быть, видел",
+                before: "You ",
+                after: " him at the conference. He was one of the keynote speakers.",
+                accepted: [
+                    "might have seen", "may have seen", "could have seen",
+                    "might've seen", "may've seen", "could've seen"
+                ],
+                display: "might/may/could have seen"
+            },
+            {
+                id: 3,
+                russian: "Не может быть, чтобы они потерялись",
+                before: "",
+                after: ". They’ve driven this route a hundred times.",
+                accepted: [
+                    "can't have gotten lost", "can't have got lost",
+                    "cannot have gotten lost", "cannot have got lost",
+                    "could not have gotten lost", "could not have got lost",
+                    "couldn't have gotten lost", "couldn't have got lost",
+                    "can not have gotten lost", "can not have got lost"
+                ],
+                display: "can't / couldn't have got(ten) lost"
+            },
+            {
+                id: 4,
+                russian: "не мог забыть",
+                before: "He ",
+                after: " about the interview. I've reminded him three times.",
+                accepted: [
+                    "can't have forgotten", "cannot have forgotten",
+                    "couldn't have forgotten", "could not have forgotten",
+                    "can not have forgotten"
+                ],
+                display: "can't have forgotten"
+            },
+            {
+                id: 5,
+                russian: "не мог удалить",
+                before: "You ",
+                after: " the file accidentally. It was backed up automatically.",
+                accepted: [
+                    "can't have deleted", "cannot have deleted",
+                    "couldn't have deleted", "could not have deleted",
+                    "can not have deleted"
+                ],
+                display: "can't / couldn't have deleted"
+            },
+            {
+                id: 6,
+                russian: "мог бы серьезно пострадать",
+                before: "He ",
+                after: ". It's a good thing he was wearing a helmet.",
+                accepted: [
+                    "could have been seriously injured",
+                    "could've been seriously injured",
+                    "might have been seriously injured",
+                    "may have been seriously injured",
+                    "could have been injured seriously"
+                ],
+                display: "could have been seriously injured"
+            },
+            {
+                id: 7,
+                russian: "могли бы избежать",
+                before: "They ",
+                after: " the whole situation by being more transparent.",
+                accepted: [
+                    "could have avoided", "could've avoided",
+                    "might have avoided", "may have avoided"
+                ],
+                display: "could have avoided"
+            },
+            {
+                id: 8,
+                russian: "должно быть, взял",
+                before: "Someone ",
+                after: " my umbrella. I left it right by the entrance.",
+                accepted: [
+                    "must have taken", "must've taken"
+                ],
+                display: "must have taken"
+            },
+            {
+                id: 9,
+                russian: "скорее всего, неверно понял",
+                before: "He ",
+                after: " the instructions. That's not what I asked him to do.",
+                accepted: [
+                    "must have misunderstood", "must've misunderstood",
+                    "must have mis understood"
+                ],
+                display: "must have misunderstood"
+            },
+            {
+                id: 10,
+                russian: "вероятнее всего, уехали",
+                before: "The neighbors ",
+                after: " away. Their lights have been off all week.",
+                accepted: [
+                    "must have gone", "must've gone",
+                    "must have left"
+                ],
+                display: "must have gone"
+            },
+            {
+                id: 11,
+                russian: "не должен был тратить",
+                before: "I ",
+                after: " so much money on something I barely use.",
+                accepted: [
+                    "shouldn't have spent", "should not have spent",
+                    "shouldn't've spent", "should not've spent"
+                ],
+                display: "shouldn't have spent"
+            },
+            {
+                id: 12,
+                russian: "должна была сказать",
+                before: "You ",
+                after: " me you were having problems instead of trying to deal with everything on your own.",
+                accepted: [
+                    "should have told", "should've told",
+                    "should have said to"
+                ],
+                display: "should have told"
+            },
+            {
+                id: 13,
+                russian: "должно быть, шутит",
+                before: "He ",
+                after: ". There's no way he's actually planning to do that.",
+                accepted: [
+                    "must be joking", "must be kidding"
+                ],
+                display: "must be joking"
+            },
+            {
+                id: 14,
+                russian: "возможно, работает",
+                before: "She ",
+                after: " from home today. I haven't seen her at the office.",
+                accepted: [
+                    "might be working", "may be working", "could be working",
+                    "might be work", "may be work"
+                ],
+                display: "might/may/could be working"
+            },
+            {
+                id: 15,
+                russian: "не может говорить",
+                before: "She ",
+                after: " the truth. Her story doesn't make any sense.",
+                accepted: [
+                    "can't be telling", "cannot be telling",
+                    "couldn't be telling", "could not be telling",
+                    "can not be telling",
+                    "can't be speaking", "cannot be speaking"
+                ],
+                display: "can't be telling"
+            },
+            {
+                id: 16,
+                russian: "возможно, заинтересован",
+                before: "He ",
+                after: " in the position, but I'm not sure.",
+                accepted: [
+                    "might be interested", "may be interested", "could be interested"
+                ],
+                display: "might/may/could be interested"
+            }
+        ];
+
+        // Feedback scale (from lowest to highest)
+        const feedbackScale = [
+            { min: 0,  max: 1,  emoji: "😬", message: "Needs more practice!" },
+            { min: 2,  max: 3,  emoji: "🐌", message: "Keep trying!" },
+            { min: 4,  max: 5,  emoji: "🌱", message: "Don't give up!" },
+            { min: 6,  max: 7,  emoji: "🐣", message: "A little progress!" },
+            { min: 8,  max: 8,  emoji: "🍀", message: "Good attempt!" },
+            { min: 9,  max: 9,  emoji: "🐝", message: "Keep working on it!" },
+            { min: 10, max: 10, emoji: "🧩", message: "You're getting there!" },
+            { min: 11, max: 11, emoji: "🐨", message: "Not bad!" },
+            { min: 12, max: 12, emoji: "🎈", message: "Nice effort!" },
+            { min: 13, max: 13, emoji: "🦊", message: "Good work!" },
+            { min: 14, max: 14, emoji: "🌻", message: "You're doing well!" },
+            { min: 15, max: 15, emoji: "🐬", message: "Very good!" },
+            { min: 16, max: 16, emoji: "🎨", message: "Great job!" },
+            // Extra high ones for near perfect / perfect (re-mapped)
+            // We use the list as ordered messages; for 16 we pick the top ones
+        ];
+
+        // Refined mapping for 0-16 correct
+        function getFeedback(score, total) {
+            const pct = score / total;
+            if (score === 0)  return { emoji: "😬", message: "Needs more practice!" };
+            if (score <= 2)  return { emoji: "🐌", message: "Keep trying!" };
+            if (score <= 4)  return { emoji: "🌱", message: "Don't give up!" };
+            if (score <= 6)  return { emoji: "🐣", message: "A little progress!" };
+            if (score <= 8)  return { emoji: "🍀", message: "Good attempt!" };
+            if (score <= 9)  return { emoji: "🐝", message: "Keep working on it!" };
+            if (score <= 10) return { emoji: "🧩", message: "You're getting there!" };
+            if (score <= 11) return { emoji: "🐨", message: "Not bad!" };
+            if (score <= 12) return { emoji: "🎈", message: "Nice effort!" };
+            if (score <= 13) return { emoji: "🦊", message: "Good work!" };
+            if (score <= 14) return { emoji: "🌻", message: "You're doing well!" };
+            if (score === 15) return { emoji: "🐬", message: "Very good!" };
+            if (score === 16) return { emoji: "💎", message: "Absolutely brilliant!" };
+            // fallback
+            return { emoji: "🎨", message: "Great job!" };
+        }
+
+        // Full ordered list for the scale visual
+        const scaleMessages = [
+            { emoji: "😬", msg: "Needs more practice!" },
+            { emoji: "🐌", msg: "Keep trying!" },
+            { emoji: "🌱", msg: "Don't give up!" },
+            { emoji: "🐣", msg: "A little progress!" },
+            { emoji: "🍀", msg: "Good attempt!" },
+            { emoji: "🐝", msg: "Keep working on it!" },
+            { emoji: "🧩", msg: "You're getting there!" },
+            { emoji: "🐨", msg: "Not bad!" },
+            { emoji: "🎈", msg: "Nice effort!" },
+            { emoji: "🦊", msg: "Good work!" },
+            { emoji: "🌻", msg: "You're doing well!" },
+            { emoji: "🐬", msg: "Very good!" },
+            { emoji: "🎨", msg: "Great job!" },
+            { emoji: "⚡", msg: "Excellent work!" },
+            { emoji: "🥳", msg: "Fantastic effort!" },
+            { emoji: "🏆", msg: "Almost perfect!" },
+            { emoji: "💎", msg: "Absolutely brilliant!" }
+        ];
+
+        // ========== STATE ==========
+        let shuffledQuestions = [];
+        let timeLeft = 5 * 60; // 5 minutes in seconds
+        let timerInterval = null;
+        let isChecked = false;
+        let timerExpired = false;
+
+        // ========== HELPERS ==========
+        function normalize(str) {
+            return str
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ')
+                .replace(/[’‘]/g, "'")
+                .replace(/[“”]/g, '"');
+        }
+
+        function isAnswerCorrect(userAnswer, acceptedList) {
+            const norm = normalize(userAnswer);
+            if (!norm) return false;
+            return acceptedList.some(acc => normalize(acc) === norm);
+        }
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // ========== RENDER ==========
+        function renderQuestions() {
+            const area = document.getElementById('quizArea');
+            area.innerHTML = '';
+
+            shuffledQuestions.forEach((q, index) => {
+                const div = document.createElement('div');
+                div.className = 'question';
+                div.id = `q-${q.id}`;
+                div.dataset.id = q.id;
+
+                div.innerHTML = `
+                    <div class="q-text">
+                        <span class="q-number">${index + 1}</span>
+                        <span>${q.before}<span class="russian-inline">(${q.russian})</span> <input type="text" class="blank-input" id="input-${q.id}" 
+                            placeholder="type the English modal..." autocomplete="off" spellcheck="false"
+                            ${isChecked ? 'disabled' : ''}>${q.after}</span>
+                    </div>
+                    <div class="feedback" id="feedback-${q.id}"></div>
+                `;
+                area.appendChild(div);
+            });
+        }
+
+        // ========== TIMER ==========
+        function startTimer() {
+            const display = document.getElementById('timerDisplay');
+            const fill = document.getElementById('progressFill');
+            const bar = document.getElementById('timerBar');
+            const total = 5 * 60;
+
+            timerInterval = setInterval(() => {
+                if (isChecked) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+
+                timeLeft--;
+                display.textContent = formatTime(timeLeft);
+                const pct = (timeLeft / total) * 100;
+                fill.style.width = `${pct}%`;
+
+                if (timeLeft <= 60) {
+                    bar.classList.add('warning');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerExpired = true;
+                    bar.classList.remove('warning');
+                    bar.classList.add('expired');
+                    display.textContent = "00:00";
+                    fill.style.width = "0%";
+                    // Auto-check
+                    checkAnswers(true);
+                }
+            }, 1000);
+        }
+
+        // ========== CHECK ==========
+        function checkAnswers(fromTimer = false) {
+            if (isChecked) return;
+            isChecked = true;
+
+            // Stop timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('timerBar').classList.add('expired');
+
+            let correctCount = 0;
+            const total = shuffledQuestions.length;
+
+            shuffledQuestions.forEach(q => {
+                const input = document.getElementById(`input-${q.id}`);
+                const feedback = document.getElementById(`feedback-${q.id}`);
+                const questionDiv = document.getElementById(`q-${q.id}`);
+                const userVal = input.value;
+
+                input.disabled = true;
+
+                if (isAnswerCorrect(userVal, q.accepted)) {
+                    correctCount++;
+                    input.classList.add('correct-input');
+                    questionDiv.classList.add('correct');
+                    feedback.className = 'feedback show correct-fb';
+                    feedback.innerHTML = `✓ Correct!`;
+                } else {
+                    input.classList.add('incorrect-input');
+                    questionDiv.classList.add('incorrect');
+                    feedback.className = 'feedback show incorrect-fb';
+                    const userShow = userVal.trim() ? `"${userVal.trim()}"` : "(empty)";
+                    feedback.innerHTML = `✗ Your answer: ${userShow}<br>Correct: <span class="correct-answer">${q.display}</span>`;
+                }
+            });
+
+            // Update summary
+            const summary = document.getElementById('scoreSummary');
+            summary.classList.add('show');
+            summary.innerHTML = `Score: <strong>${correctCount}</strong> / ${total} correct`;
+
+            // Disable check button
+            document.getElementById('checkBtn').disabled = true;
+            document.getElementById('checkBtn').textContent = 'Checked';
+
+            // Show popup
+            showPopup(correctCount, total, fromTimer);
+        }
+
+        function showPopup(score, total, fromTimer) {
+            const fb = getFeedback(score, total);
+            document.getElementById('popupEmoji').textContent = fb.emoji;
+            document.getElementById('popupTitle').textContent = fromTimer ? "Time's up!" : "Quiz Complete!";
+            document.getElementById('scoreValue').textContent = score;
+            document.getElementById('totalValue').textContent = total;
+            document.getElementById('popupMessage').textContent = fb.message;
+
+            // Build scale
+            const scaleEl = document.getElementById('popupScale');
+            scaleEl.innerHTML = '';
+            // Map score roughly to the 17 levels
+            const levelIndex = Math.min(Math.round((score / total) * (scaleMessages.length - 1)), scaleMessages.length - 1);
+
+            scaleMessages.forEach((item, idx) => {
+                const span = document.createElement('span');
+                span.className = 'scale-item' + (idx === levelIndex ? ' active' : '');
+                span.textContent = item.emoji;
+                span.title = item.msg;
+                scaleEl.appendChild(span);
+            });
+
+            document.getElementById('overlay').classList.add('show');
+        }
+
+        function closePopup() {
+            document.getElementById('overlay').classList.remove('show');
+            // Note: timer is NOT refreshed, answers stay, correct answers remain visible
+        }
+
+        // ========== INIT ==========
+        function init() {
+            shuffledQuestions = shuffle(questions);
+            renderQuestions();
+            startTimer();
+
+            // Allow Enter key in last input to trigger check (optional nicety)
+            document.getElementById('quizArea').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !isChecked) {
+                    checkAnswers();
+                }
+            });
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
