@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tomorrow's Learning</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f0f9ff 50%, #ecfdf5 100%);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.12);
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .timer-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 16px;
+            padding: 12px 20px;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .timer-bar.warning {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            animation: pulse 1s infinite;
+        }
+
+        .timer-bar.expired {
+            background: linear-gradient(90deg, #64748b, #475569);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        #timerDisplay {
+            font-variant-numeric: tabular-nums;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            max-width: 200px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            transition: width 1s linear;
+            width: 100%;
+        }
+
+        .instructions {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        .instructions strong {
+            color: var(--text);
+        }
+
+        .quiz-area {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .question {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.3s;
+        }
+
+        .question:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .question.correct {
+            background: rgba(16, 185, 129, 0.06);
+            border-radius: 10px;
+            padding: 14px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-bottom-color: transparent;
+        }
+
+        .question.incorrect {
+            background: rgba(239, 68, 68, 0.06);
+            border-radius: 10px;
+            padding: 14px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-bottom-color: transparent;
+        }
+
+        .q-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .q-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .russian {
+            color: #4338ca;
+            font-weight: 500;
+            background: #eef2ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.98rem;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .blank-input {
+            display: inline-block;
+            min-width: 260px;
+            max-width: 100%;
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: var(--text);
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            flex: 1.2;
+        }
+
+        .blank-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+            background: white;
+        }
+
+        .blank-input.correct-input {
+            border-color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .blank-input.incorrect-input {
+            border-color: var(--error);
+            background: #fef2f2;
+        }
+
+        .blank-input:disabled {
+            opacity: 0.9;
+            cursor: default;
+        }
+
+        .feedback {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-left: 38px;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct-fb {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .feedback.incorrect-fb {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .correct-answer {
+            font-weight: 600;
+            color: #047857;
+        }
+
+        .btn-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+            font-family: inherit;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-check {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        }
+
+        .btn-check:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .btn-check:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Popup Overlay */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            padding: 20px;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 28px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .overlay.show .popup {
+            transform: scale(1) translateY(0);
+        }
+
+        .popup-emoji {
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+            line-height: 1;
+        }
+
+        .popup-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .popup-score {
+            font-size: 1.15rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .popup-score strong {
+            color: var(--primary);
+            font-size: 1.4rem;
+        }
+
+        .popup-message {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin: 16px 0 24px;
+            font-weight: 500;
+        }
+
+        .popup-scale {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 24px;
+            font-size: 0.75rem;
+        }
+
+        .scale-item {
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            color: var(--muted);
+            opacity: 0.6;
+        }
+
+        .scale-item.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            opacity: 1;
+            font-weight: 600;
+            transform: scale(1.05);
+        }
+
+        .btn-close {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 12px 36px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-close:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+
+        .score-summary {
+            text-align: center;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 1.1rem;
+        }
+
+        .score-summary.show {
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+            padding: 16px;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.5rem; }
+            .blank-input { min-width: 100%; }
+            .q-row { flex-direction: column; }
+            .timer-bar { flex-direction: column; gap: 8px; }
+            .progress-track { max-width: 100%; width: 100%; }
+            .feedback { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Education Vocabulary</h1>
+            <div class="timer-bar" id="timerBar">
+                <span>⏱</span>
+                <span id="timerDisplay">03:00</span>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="instructions">
+            <strong>Instructions:</strong> Translate the Russian phrases into English.
+        </div>
+
+        <div class="score-summary" id="scoreSummary"></div>
+
+        <div class="quiz-area" id="quizArea">
+            <!-- Questions injected here -->
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-check" id="checkBtn" onclick="checkAnswers()">Check Answers</button>
+        </div>
+
+        <footer>
+            Questions are reshuffled on every page load · Timer does not reset after results
+        </footer>
+    </div>
+
+    <!-- Results Popup -->
+    <div class="overlay" id="overlay">
+        <div class="popup">
+            <div class="popup-emoji" id="popupEmoji">🏆</div>
+            <div class="popup-title" id="popupTitle">Results</div>
+            <div class="popup-score">You scored <strong id="scoreValue">0</strong> / <span id="totalValue">10</span></div>
+            <div class="popup-message" id="popupMessage">Great job!</div>
+            <div class="popup-scale" id="popupScale"></div>
+            <button class="btn-close" onclick="closePopup()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                id: 1,
+                russian: "стремиться к совершенству / добиваться высоких результатов",
+                accepted: [
+                    "to strive for excellence",
+                    "strive for excellence",
+                    "to strive for excellence",
+                    "strive towards excellence",
+                    "to strive towards excellence"
+                ],
+                display: "to strive for excellence"
+            },
+            {
+                id: 2,
+                russian: "плата за обучение",
+                accepted: [
+                    "tuition fees",
+                    "tuition fee",
+                    "the tuition fees",
+                    "tuition"
+                ],
+                display: "tuition fees"
+            },
+            {
+                id: 3,
+                russian: "профессиональное обучение / профессиональная подготовка",
+                accepted: [
+                    "vocational training",
+                    "vocational education",
+                    "professional training"
+                ],
+                display: "vocational training"
+            },
+            {
+                id: 4,
+                russian: "механическое заучивание / зубрёжка",
+                accepted: [
+                    "rote learning",
+                    "rote memorization",
+                    "rote memorisation",
+                    "learning by rote"
+                ],
+                display: "rote learning"
+            },
+            {
+                id: 5,
+                russian: "поддерживать строгие стандарты / высокие требования",
+                accepted: [
+                    "to maintain rigorous standards",
+                    "maintain rigorous standards",
+                    "to maintain high standards",
+                    "maintain high standards",
+                    "to maintain rigorous standard",
+                    "maintain rigorous standard"
+                ],
+                display: "to maintain rigorous standards"
+            },
+            {
+                id: 6,
+                russian: "раскрыть свой потенциал / реализовать свои способности",
+                accepted: [
+                    "to fulfil your potential",
+                    "fulfil your potential",
+                    "to fulfill your potential",
+                    "fulfill your potential",
+                    "to fulfil one's potential",
+                    "fulfil one's potential",
+                    "to fulfill one's potential",
+                    "fulfill one's potential",
+                    "to realise your potential",
+                    "realise your potential",
+                    "to realize your potential",
+                    "realize your potential"
+                ],
+                display: "to fulfil / fulfill your potential"
+            },
+            {
+                id: 7,
+                russian: "студенческий кредит / заём на обучение",
+                accepted: [
+                    "a student loan",
+                    "student loan",
+                    "a student loan",
+                    "student loans"
+                ],
+                display: "a student loan"
+            },
+            {
+                id: 8,
+                russian: "установить взаимное уважение",
+                accepted: [
+                    "to establish mutual respect",
+                    "establish mutual respect",
+                    "to establish mutual respect",
+                    "to build mutual respect",
+                    "build mutual respect"
+                ],
+                display: "to establish mutual respect"
+            },
+            {
+                id: 9,
+                russian: "создать благоприятную / поддерживающую среду",
+                accepted: [
+                    "to develop a nurturing environment",
+                    "develop a nurturing environment",
+                    "to create a nurturing environment",
+                    "create a nurturing environment",
+                    "to develop a supportive environment",
+                    "develop a supportive environment",
+                    "to create a supportive environment",
+                    "create a supportive environment"
+                ],
+                display: "to develop a nurturing environment"
+            },
+            {
+                id: 10,
+                russian: "способствовать установлению хороших отношений / развивать хорошие взаимоотношения",
+                accepted: [
+                    "to foster good relationships",
+                    "foster good relationships",
+                    "to foster good relations",
+                    "foster good relations",
+                    "to develop good relationships",
+                    "develop good relationships",
+                    "to promote good relationships",
+                    "promote good relationships"
+                ],
+                display: "to foster good relationships"
+            }
+        ];
+
+        const scaleMessages = [
+            { emoji: "😬", msg: "Needs more practice!" },
+            { emoji: "🐌", msg: "Keep trying!" },
+            { emoji: "🌱", msg: "Don't give up!" },
+            { emoji: "🐣", msg: "A little progress!" },
+            { emoji: "🍀", msg: "Good attempt!" },
+            { emoji: "🐝", msg: "Keep working on it!" },
+            { emoji: "🧩", msg: "You're getting there!" },
+            { emoji: "🐨", msg: "Not bad!" },
+            { emoji: "🎈", msg: "Nice effort!" },
+            { emoji: "🦊", msg: "Good work!" },
+            { emoji: "🌻", msg: "You're doing well!" },
+            { emoji: "🐬", msg: "Very good!" },
+            { emoji: "🎨", msg: "Great job!" },
+            { emoji: "⚡", msg: "Excellent work!" },
+            { emoji: "🥳", msg: "Fantastic effort!" },
+            { emoji: "🏆", msg: "Almost perfect!" },
+            { emoji: "💎", msg: "Absolutely brilliant!" }
+        ];
+
+        function getFeedback(score, total) {
+            if (score === 0)  return { emoji: "😬", message: "Needs more practice!" };
+            if (score <= 2)  return { emoji: "🐌", message: "Keep trying!" };
+            if (score <= 3)  return { emoji: "🌱", message: "Don't give up!" };
+            if (score <= 4)  return { emoji: "🐣", message: "A little progress!" };
+            if (score <= 5)  return { emoji: "🍀", message: "Good attempt!" };
+            if (score <= 6)  return { emoji: "🐝", message: "Keep working on it!" };
+            if (score <= 7)  return { emoji: "🧩", message: "You're getting there!" };
+            if (score === 8) return { emoji: "🦊", message: "Good work!" };
+            if (score === 9) return { emoji: "🐬", message: "Very good!" };
+            if (score === 10) return { emoji: "💎", message: "Absolutely brilliant!" };
+            return { emoji: "🎨", message: "Great job!" };
+        }
+
+        let shuffledQuestions = [];
+        let timeLeft = 3 * 60; // 3 minutes
+        let timerInterval = null;
+        let isChecked = false;
+        let timerExpired = false;
+
+        function normalize(str) {
+            return str
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ')
+                .replace(/[’‘]/g, "'")
+                .replace(/[“”]/g, '"')
+                .replace(/\./g, '');
+        }
+
+        function isAnswerCorrect(userAnswer, acceptedList) {
+            const norm = normalize(userAnswer);
+            if (!norm) return false;
+            return acceptedList.some(acc => normalize(acc) === norm);
+        }
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function renderQuestions() {
+            const area = document.getElementById('quizArea');
+            area.innerHTML = '';
+
+            shuffledQuestions.forEach((q, index) => {
+                const div = document.createElement('div');
+                div.className = 'question';
+                div.id = `q-${q.id}`;
+                div.dataset.id = q.id;
+
+                div.innerHTML = `
+                    <div class="q-row">
+                        <span class="q-number">${index + 1}</span>
+                        <span class="russian">${q.russian}</span>
+                        <input type="text" class="blank-input" id="input-${q.id}" 
+                            placeholder="type the English phrase..." autocomplete="off" spellcheck="false"
+                            ${isChecked ? 'disabled' : ''}>
+                    </div>
+                    <div class="feedback" id="feedback-${q.id}"></div>
+                `;
+                area.appendChild(div);
+            });
+        }
+
+        function startTimer() {
+            const display = document.getElementById('timerDisplay');
+            const fill = document.getElementById('progressFill');
+            const bar = document.getElementById('timerBar');
+            const total = 3 * 60;
+
+            timerInterval = setInterval(() => {
+                if (isChecked) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+
+                timeLeft--;
+                display.textContent = formatTime(timeLeft);
+                const pct = (timeLeft / total) * 100;
+                fill.style.width = `${pct}%`;
+
+                if (timeLeft <= 30) {
+                    bar.classList.add('warning');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerExpired = true;
+                    bar.classList.remove('warning');
+                    bar.classList.add('expired');
+                    display.textContent = "00:00";
+                    fill.style.width = "0%";
+                    checkAnswers(true);
+                }
+            }, 1000);
+        }
+
+        function checkAnswers(fromTimer = false) {
+            if (isChecked) return;
+            isChecked = true;
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('timerBar').classList.add('expired');
+
+            let correctCount = 0;
+            const total = shuffledQuestions.length;
+
+            shuffledQuestions.forEach(q => {
+                const input = document.getElementById(`input-${q.id}`);
+                const feedback = document.getElementById(`feedback-${q.id}`);
+                const questionDiv = document.getElementById(`q-${q.id}`);
+                const userVal = input.value;
+
+                input.disabled = true;
+
+                if (isAnswerCorrect(userVal, q.accepted)) {
+                    correctCount++;
+                    input.classList.add('correct-input');
+                    questionDiv.classList.add('correct');
+                    feedback.className = 'feedback show correct-fb';
+                    feedback.innerHTML = `✓ Correct!`;
+                } else {
+                    input.classList.add('incorrect-input');
+                    questionDiv.classList.add('incorrect');
+                    feedback.className = 'feedback show incorrect-fb';
+                    const userShow = userVal.trim() ? `"${userVal.trim()}"` : "(empty)";
+                    feedback.innerHTML = `✗ Your answer: ${userShow}<br>Correct: <span class="correct-answer">${q.display}</span>`;
+                }
+            });
+
+            const summary = document.getElementById('scoreSummary');
+            summary.classList.add('show');
+            summary.innerHTML = `Score: <strong>${correctCount}</strong> / ${total} correct`;
+
+            document.getElementById('checkBtn').disabled = true;
+            document.getElementById('checkBtn').textContent = 'Checked';
+
+            showPopup(correctCount, total, fromTimer);
+        }
+
+        function showPopup(score, total, fromTimer) {
+            const fb = getFeedback(score, total);
+            document.getElementById('popupEmoji').textContent = fb.emoji;
+            document.getElementById('popupTitle').textContent = fromTimer ? "Time's up!" : "Quiz Complete!";
+            document.getElementById('scoreValue').textContent = score;
+            document.getElementById('totalValue').textContent = total;
+            document.getElementById('popupMessage').textContent = fb.message;
+
+            const scaleEl = document.getElementById('popupScale');
+            scaleEl.innerHTML = '';
+            const levelIndex = Math.min(Math.round((score / total) * (scaleMessages.length - 1)), scaleMessages.length - 1);
+
+            scaleMessages.forEach((item, idx) => {
+                const span = document.createElement('span');
+                span.className = 'scale-item' + (idx === levelIndex ? ' active' : '');
+                span.textContent = item.emoji;
+                span.title = item.msg;
+                scaleEl.appendChild(span);
+            });
+
+            document.getElementById('overlay').classList.add('show');
+        }
+
+        function closePopup() {
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        function init() {
+            shuffledQuestions = shuffle(questions);
+            renderQuestions();
+            startTimer();
+
+            document.getElementById('quizArea').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !isChecked) {
+                    checkAnswers();
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
