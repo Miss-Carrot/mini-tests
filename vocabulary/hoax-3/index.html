@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hoax (3)</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #16a34a;
+      --error: #dc2626;
+      --border: #e2e8f0;
+      --input-bg: #f1f5f9;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1rem;
+      min-height: 100vh;
+    }
+    .container { max-width: 820px; margin: 0 auto; }
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; }
+    .timer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      padding: 0.85rem 1.1rem;
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      flex-wrap: wrap;
+    }
+    .timer {
+      font-size: 1.35rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--primary);
+    }
+    .timer.warning { color: #ea580c; }
+    .timer.danger { color: var(--error); animation: pulse 0.8s infinite; }
+    @keyframes pulse { 50% { opacity: 0.6; } }
+    .score-display { font-size: 1rem; font-weight: 600; color: var(--muted); }
+    .score-display strong { color: var(--text); }
+    .controls { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    button {
+      font: inherit;
+      font-weight: 600;
+      padding: 0.55rem 1.1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    #checkBtn { background: var(--primary); color: white; }
+    #checkBtn:hover:not(:disabled) { background: var(--primary-hover); }
+    #resetBtn {
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    #resetBtn:hover:not(:disabled) { background: #e2e8f0; }
+    .quiz-list { display: flex; flex-direction: column; gap: 0.9rem; }
+    .item {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--border);
+      transition: border-color 0.2s;
+    }
+    .item.correct { border-left-color: var(--success); }
+    .item.incorrect { border-left-color: var(--error); }
+    .item-num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .sentence {
+      font-size: 1.05rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.3rem 0.25rem;
+      margin-bottom: 0.35rem;
+    }
+    .sentence input {
+      font: inherit;
+      font-size: 1rem;
+      padding: 0.25rem 0.5rem;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--text);
+      min-width: 5rem;
+      text-align: center;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .sentence input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+    }
+    .sentence input.ok {
+      border-color: var(--success);
+      background: #f0fdf4;
+    }
+    .sentence input.bad {
+      border-color: var(--error);
+      background: #fef2f2;
+    }
+    .sentence input:disabled { opacity: 0.85; }
+    .definition {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+    .feedback {
+      font-size: 0.85rem;
+      margin-top: 0.4rem;
+      font-weight: 500;
+      display: none;
+    }
+    .feedback.show { display: block; }
+    .feedback.ok { color: var(--success); }
+    .feedback.bad { color: var(--error); }
+    .results-banner {
+      display: none;
+      text-align: center;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+    .results-banner.show { display: block; }
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      padding: 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 1.75rem 1.5rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+      text-align: center;
+      animation: popIn 0.25s ease;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-emoji { font-size: 3rem; margin-bottom: 0.5rem; line-height: 1; }
+    .modal-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+    .modal-msg {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+      line-height: 1.4;
+    }
+    .modal-close {
+      background: var(--primary);
+      color: white;
+      padding: 0.6rem 1.4rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal-close:hover { background: var(--primary-hover); }
+
+    @media (max-width: 520px) {
+      h1 { font-size: 1.25rem; }
+      .sentence { font-size: 0.98rem; }
+      .sentence input { min-width: 4rem; font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Hoax (3)</h1>
+      <p class="subtitle">Fill in the missing words. You have 5 minutes.</p>
+    </header>
+
+    <div class="timer-bar">
+      <div class="timer" id="timer">5:00</div>
+      <div class="score-display" id="scoreDisplay">Score: — / 15</div>
+      <div class="controls">
+        <button id="checkBtn">Check Answers</button>
+        <button id="resetBtn">New Round</button>
+      </div>
+    </div>
+
+    <div class="results-banner" id="resultsBanner"></div>
+    <div class="quiz-list" id="quizList"></div>
+
+    <footer>
+      Shuffle on every load · No real-time validation · Light theme
+    </footer>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-emoji" id="modalEmoji"></div>
+      <div class="modal-score" id="modalScore"></div>
+      <div class="modal-msg" id="modalMsg"></div>
+      <button class="modal-close" id="modalClose">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const SCALE = [
+      { emoji: "😔", msg: "Needs a lot more practice." },
+      { emoji: "😕", msg: "Keep trying — you’ll get there!" },
+      { emoji: "🌱", msg: "A little progress!" },
+      { emoji: "🙂", msg: "You're getting started!" },
+      { emoji: "😊", msg: "Keep up the effort!" },
+      { emoji: "👍", msg: "You're making progress!" },
+      { emoji: "💪", msg: "Good effort!" },
+      { emoji: "🌟", msg: "You're improving!" },
+      { emoji: "😊", msg: "A solid attempt!" },
+      { emoji: "👏", msg: "Good job!" },
+      { emoji: "🎯", msg: "Well done!" },
+      { emoji: "😃", msg: "Very good work!" },
+      { emoji: "🌟", msg: "Great job!" },
+      { emoji: "🔥", msg: "Excellent work!" },
+      { emoji: "🏆", msg: "Impressive performance!" },
+      { emoji: "🤩", msg: "Outstanding work!" },
+      { emoji: "🥇", msg: "Absolutely brilliant!" }
+    ];
+
+    /*
+      parts: text segments; number of gaps = parts.length - 1
+      answers: acceptable sets of words (one string per gap)
+      show: display string for feedback
+      def: definition shown to the student
+    */
+    const ITEMS = [
+      {
+        id: 1,
+        parts: ["to ", " (your feelings / the truth)"],
+        answers: [["conceal"]],
+        show: "conceal",
+        def: "to hide something or keep it secret"
+      },
+      {
+        id: 2,
+        parts: ["a ", " ", ""],
+        answers: [["plausible", "excuse"]],
+        show: "plausible excuse",
+        def: "a reason that seems believable or reasonable"
+      },
+      {
+        id: 3,
+        parts: ["to ", ""],
+        answers: [["doubt"]],
+        show: "doubt",
+        def: "to feel uncertain about whether something is true"
+      },
+      {
+        id: 4,
+        parts: ["to ", " something ", " a ", " of ", ""],
+        answers: [["take", "with", "grain", "salt"]],
+        show: "take … with a grain of salt",
+        def: "to be sceptical about something and not believe it completely"
+      },
+      {
+        id: 5,
+        parts: ["to ", " ", ""],
+        answers: [["feign", "interest"]],
+        show: "feign interest",
+        def: "to pretend to be interested in something"
+      },
+      {
+        id: 6,
+        parts: ["to ", " your ", ""],
+        answers: [["speak", "mind"]],
+        show: "speak your mind",
+        def: "to say honestly what you think or feel"
+      },
+      {
+        id: 7,
+        parts: ["to ", ""],
+        answers: [["deceive"]],
+        show: "deceive",
+        def: "to make someone believe something that is not true"
+      },
+      {
+        id: 8,
+        parts: ["a ", ""],
+        answers: [["scheme"]],
+        show: "scheme",
+        def: "a secret or dishonest plan to achieve something"
+      },
+      {
+        id: 9,
+        parts: ["to ", " ", ""],
+        answers: [["make", "up"]],
+        show: "make up",
+        def: "to invent a story, excuse or explanation"
+      },
+      {
+        id: 10,
+        parts: ["to ", " ", ""],
+        answers: [["play", "dumb"]],
+        show: "play dumb",
+        def: "to pretend not to know or understand something"
+      },
+      {
+        id: 11,
+        parts: ["to ", " something"],
+        answers: [["plot"]],
+        show: "plot",
+        def: "to secretly plan something, often dishonest or harmful"
+      },
+      {
+        id: 12,
+        parts: ["to ", " ", ""],
+        answers: [["come", "clean"]],
+        show: "come clean",
+        def: "to admit the truth about something you have been hiding"
+      },
+      {
+        id: 13,
+        parts: ["", ""],
+        answers: [["fishy"]],
+        show: "fishy",
+        def: "seeming suspicious or dishonest"
+      },
+      {
+        id: 14,
+        parts: ["to ", ""],
+        answers: [["pretend"]],
+        show: "pretend",
+        def: "to behave as if something is true when it isn't"
+      },
+      {
+        id: 15,
+        parts: ["not to ", " something"],
+        answers: [["buy"]],
+        show: "buy",
+        def: "to not believe or accept something as true"
+      }
+    ];
+
+    let order = [];
+    let timeLeft = 300;
+    let timerId = null;
+    let finished = false;
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function normalize(s) {
+      return s.trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function buildQuiz() {
+      order = shuffle(ITEMS.map((_, i) => i));
+      const list = document.getElementById("quizList");
+      list.innerHTML = "";
+      finished = false;
+      document.getElementById("resultsBanner").classList.remove("show");
+      document.getElementById("scoreDisplay").textContent = "Score: — / 15";
+      document.getElementById("checkBtn").disabled = false;
+      document.getElementById("modalOverlay").classList.remove("show");
+
+      order.forEach((idx, displayNum) => {
+        const item = ITEMS[idx];
+        const div = document.createElement("div");
+        div.className = "item";
+        div.dataset.idx = idx;
+
+        let sentenceHTML = "";
+        const numGaps = item.parts.length - 1;
+        for (let g = 0; g < numGaps; g++) {
+          sentenceHTML += item.parts[g];
+          const long = (item.id === 4); // "with a grain of salt" needs slightly wider fields
+          const width = long ? "5.5rem" : (numGaps >= 3 ? "5rem" : "6.5rem");
+          sentenceHTML += `<input type="text" data-gap="${g}" autocomplete="off" spellcheck="false" style="min-width:${width}">`;
+        }
+        sentenceHTML += item.parts[numGaps];
+
+        div.innerHTML = `
+          <div class="item-num">#${displayNum + 1}</div>
+          <div class="sentence">${sentenceHTML}</div>
+          <div class="definition">${item.def}</div>
+          <div class="feedback"></div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function startTimer() {
+      clearInterval(timerId);
+      timeLeft = 300;
+      updateTimerDisplay();
+      timerId = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          timeLeft = 0;
+          updateTimerDisplay();
+          finishQuiz(true);
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timeLeft / 60);
+      const s = timeLeft % 60;
+      const el = document.getElementById("timer");
+      el.textContent = `${m}:${s.toString().padStart(2, "0")}`;
+      el.classList.remove("warning", "danger");
+      if (timeLeft <= 60) el.classList.add("danger");
+      else if (timeLeft <= 120) el.classList.add("warning");
+    }
+
+    function checkAnswers() {
+      if (finished) return;
+      finishQuiz(false);
+    }
+
+    function finishQuiz(timedOut) {
+      finished = true;
+      clearInterval(timerId);
+      document.getElementById("checkBtn").disabled = true;
+
+      let correctCount = 0;
+      const items = document.querySelectorAll(".item");
+
+      items.forEach(div => {
+        const idx = +div.dataset.idx;
+        const item = ITEMS[idx];
+        const inputs = div.querySelectorAll("input");
+        const userVals = Array.from(inputs).map(inp => normalize(inp.value));
+        const feedback = div.querySelector(".feedback");
+
+        let isCorrect = false;
+        for (const ansSet of item.answers) {
+          if (ansSet.length !== userVals.length) continue;
+          let match = true;
+          for (let i = 0; i < ansSet.length; i++) {
+            if (normalize(ansSet[i]) !== userVals[i]) {
+              match = false;
+              break;
+            }
+          }
+          if (match) {
+            isCorrect = true;
+            break;
+          }
+        }
+
+        if (isCorrect) {
+          correctCount++;
+          div.classList.add("correct");
+          div.classList.remove("incorrect");
+          inputs.forEach(inp => {
+            inp.classList.add("ok");
+            inp.classList.remove("bad");
+            inp.disabled = true;
+          });
+          feedback.textContent = "✓ Correct";
+          feedback.className = "feedback show ok";
+        } else {
+          div.classList.add("incorrect");
+          div.classList.remove("correct");
+          inputs.forEach(inp => {
+            inp.classList.add("bad");
+            inp.classList.remove("ok");
+            inp.disabled = true;
+          });
+          feedback.textContent = "✗ Correct: " + item.show;
+          feedback.className = "feedback show bad";
+        }
+      });
+
+      document.getElementById("scoreDisplay").innerHTML = `Score: <strong>${correctCount} / 15</strong>`;
+      const banner = document.getElementById("resultsBanner");
+      banner.classList.add("show");
+      banner.textContent = timedOut
+        ? `Time’s up! You scored ${correctCount} out of 15.`
+        : `You scored ${correctCount} out of 15.`;
+
+      const scaleIdx = Math.min(correctCount, 16);
+      const entry = SCALE[scaleIdx];
+      document.getElementById("modalEmoji").textContent = entry.emoji;
+      document.getElementById("modalScore").textContent = `${correctCount} / 15`;
+      document.getElementById("modalMsg").textContent = entry.msg;
+      document.getElementById("modalOverlay").classList.add("show");
+    }
+
+    function newRound() {
+      clearInterval(timerId);
+      buildQuiz();
+      startTimer();
+    }
+
+    document.getElementById("checkBtn").addEventListener("click", checkAnswers);
+    document.getElementById("resetBtn").addEventListener("click", newRound);
+    document.getElementById("modalClose").addEventListener("click", () => {
+      document.getElementById("modalOverlay").classList.remove("show");
+    });
+    document.getElementById("modalOverlay").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("modalOverlay")) {
+        document.getElementById("modalOverlay").classList.remove("show");
+      }
+    });
+
+    document.getElementById("quizList").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !finished) {
+        e.preventDefault();
+        checkAnswers();
+      }
+    });
+
+    buildQuiz();
+    startTimer();
+  </script>
+</body>
+</html>
