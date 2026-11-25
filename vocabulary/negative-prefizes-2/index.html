@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Negative prefixes (2)</title>
+<link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<style>
+  :root{
+    --bg:#0f1116;
+    --card:#1a1d27;
+    --border:#2b2f3a;
+    --text:#e8e9ee;
+    --muted:#9aa0ad;
+    --accent:#5b8def;
+    --green:#2fbf71;
+    --green-bg:#12321f;
+    --green-text:#c9f6dc;
+    --red:#e6534a;
+    --red-bg:#3a1616;
+    --red-text:#ffd0cc;
+    --input-bg:#12141b;
+  }
+  html[data-theme="light"]{
+    --bg:#f4f5f8;
+    --card:#ffffff;
+    --border:#dfe2ea;
+    --text:#1b1d24;
+    --muted:#6b7180;
+    --accent:#3763d6;
+    --green:#1f9d5c;
+    --green-bg:#e4f8ec;
+    --green-text:#0f5c33;
+    --red:#d63c33;
+    --red-bg:#fdeceb;
+    --red-text:#8a231c;
+    --input-bg:#f9f9fb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 16px 60px;
+    transition:background .2s, color .2s;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+  h1{text-align:center;font-size:1.5rem;margin-bottom:4px;}
+  .sub{text-align:center;color:var(--muted);font-size:0.9rem;margin-bottom:20px;}
+  .top-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5;
+    border-bottom:1px solid var(--border);margin-bottom:16px;
+  }
+  #timer{
+    font-size:1.3rem;font-weight:700;padding:6px 14px;border-radius:8px;
+    background:var(--card);border:1px solid var(--border);min-width:80px;text-align:center;
+  }
+  #timer.warn{color:var(--red);border-color:var(--red);}
+  #score{font-size:1rem;color:var(--muted);}
+  #theme-toggle{
+    background:var(--card);color:var(--text);border:1px solid var(--border);
+    padding:6px 12px;border-radius:8px;font-size:0.85rem;cursor:pointer;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:10px;
+    align-items:start;
+  }
+  .item{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:12px 14px;
+  }
+  .line{display:flex;align-items:center;gap:8px;}
+  .num{color:var(--muted);font-size:0.8rem;min-width:24px;}
+  input.answer{
+    width:76px;padding:8px 8px;border-radius:8px;border:1px solid var(--border);
+    background:var(--input-bg);color:var(--text);font-size:1rem;text-align:center;
+    outline:none;font-family:inherit;transition:background .15s,border-color .15s;
+  }
+  input.answer:focus{border-color:var(--accent);}
+  input.answer.correct{background:var(--green-bg);border-color:var(--green);color:var(--green-text);}
+  input.answer.incorrect{background:var(--red-bg);border-color:var(--red);color:var(--red-text);}
+  input.answer:disabled{opacity:0.85;}
+  .stem{font-size:1.1rem;font-weight:600;}
+  /* Correct answers are in the markup but stay hidden until the pop-up is closed after time is up */
+  .reveal{display:none;margin-top:8px;font-size:0.88rem;color:var(--green-text);
+    background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:5px 9px;}
+  body.show-answers .reveal{display:block;}
+  #check-btn{
+    display:block;width:100%;background:var(--accent);color:#fff;border:none;
+    padding:13px 18px;border-radius:10px;font-size:1rem;font-weight:600;
+    cursor:pointer;margin-top:16px;
+  }
+  #check-btn:hover{opacity:0.9;}
+  #check-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  #finish-overlay{
+    display:none;position:fixed;inset:0;background:rgba(10,11,15,0.55);
+    align-items:center;justify-content:center;z-index:20;
+  }
+  #finish-box{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:28px 30px;text-align:center;max-width:340px;color:var(--text);
+  }
+  #finish-emoji{font-size:3rem;line-height:1;margin-bottom:6px;}
+  #finish-box h2{margin-top:0;margin-bottom:4px;}
+  #finish-box p{color:var(--muted);}
+  button.primary{
+    background:var(--accent);color:#fff;border:none;padding:10px 24px;
+    border-radius:8px;font-size:0.95rem;cursor:pointer;margin-top:10px;
+  }
+  button.primary:hover{opacity:0.9;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Negative prefixes (2)</h1>
+  <p class="sub">Fill in the missing negative prefix for each word, then press Check. You have 5 minutes.</p>
+
+  <div class="top-bar">
+    <div id="timer">05:00</div>
+    <div id="score">0 / 30 correct</div>
+    <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+  </div>
+
+  <div id="quiz" class="grid"></div>
+  <button id="check-btn" onclick="finishNow()">Check</button>
+</div>
+
+<div id="finish-overlay">
+  <div id="finish-box">
+    <div id="finish-emoji">⚓</div>
+    <h2 id="finish-title">Time's up!</h2>
+    <p id="final-score"></p>
+    <button class="primary" onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script>
+// prefixes = accepted negative prefixes (the first one is the standard form); stem = the word shown
+const baseData = [
+  { stem: "patient",       prefixes: ["im"] },
+  { stem: "possible",      prefixes: ["im"] },
+  { stem: "appropriate",   prefixes: ["in"] },
+  { stem: "experienced",   prefixes: ["in"] },
+  { stem: "organised",     prefixes: ["dis", "un"] },
+  { stem: "satisfied",     prefixes: ["dis", "un"] },
+  { stem: "mature",        prefixes: ["im"] },
+  { stem: "comfortable",   prefixes: ["un"] },
+  { stem: "honest",        prefixes: ["dis"] },
+  { stem: "responsible",   prefixes: ["ir"] },
+  { stem: "literate",      prefixes: ["il"] },
+  { stem: "formal",        prefixes: ["in"] },
+  { stem: "regular",       prefixes: ["ir"] },
+  { stem: "relevant",      prefixes: ["ir"] },
+  { stem: "necessary",     prefixes: ["un"] },
+  { stem: "successful",    prefixes: ["un"] },
+  { stem: "secure",        prefixes: ["in"] },
+  { stem: "certain",       prefixes: ["un"] },
+  { stem: "convenient",    prefixes: ["in"] },
+  { stem: "professional",  prefixes: ["un"] },
+  { stem: "dependent",     prefixes: ["in"] },
+  { stem: "tolerant",      prefixes: ["in"] },
+  { stem: "friendly",      prefixes: ["un"] },
+  { stem: "familiar",      prefixes: ["un"] },
+  { stem: "believable",    prefixes: ["un"] },
+  { stem: "qualified",     prefixes: ["un"] },
+  { stem: "fortunate",     prefixes: ["un"] },
+  { stem: "accurate",      prefixes: ["in"] },
+  { stem: "logical",       prefixes: ["il"] },
+  { stem: "obedient",      prefixes: ["dis"] }
+];
+
+// Fisher-Yates shuffle: new order on every page load
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+const data = shuffle(baseData);
+
+const scoreMessages = {
+  30: ["🪐", "Out-of-this-world perfect!"],
+  29: ["🌌", "Stellar performance!"],
+  28: ["🚀", "Blasting off!"],
+  27: ["🛸", "Unbelievable work!"],
+  26: ["🌠", "A shooting star!"],
+  25: ["🌊", "Riding the crest!"],
+  24: ["🐋", "A whale of a result!"],
+  23: ["🦈", "Sharp as a shark!"],
+  22: ["🦑", "Ink-credible work!"],
+  21: ["🐠", "Swimming in success!"],
+  20: ["🐳", "Making waves!"],
+  19: ["🦀", "Pinching the points!"],
+  18: ["🐚", "A real gem!"],
+  17: ["🪸", "Growing beautifully!"],
+  16: ["🏝️", "Smooth sailing!"],
+  15: ["🚤", "Full speed ahead!"],
+  14: ["🧜", "Splashing along nicely!"],
+  13: ["🐡", "Puffing up your score!"],
+  12: ["🦭", "Steady paddling!"],
+  11: ["🌴", "Island in sight!"],
+  10: ["🦞", "Claws out — keep going!"],
+  9:  ["🔦", "Light the way!"],
+  8:  ["🛟", "Staying afloat!"],
+  7:  ["🪝", "Hooked on learning!"],
+  6:  ["🎣", "A few bites so far!"],
+  5:  ["🌁", "Foggy but moving!"],
+  4:  ["🦦", "Floating along!"],
+  3:  ["🐟", "Small fish, big pond!"],
+  2:  ["🫧", "Just a few bubbles!"],
+  1:  ["🌑", "A quiet start!"],
+  0:  ["⚓", "Drop anchor and try again!"]
+};
+
+// Not case sensitive; a trailing hyphen ("un-") is ignored; typing the whole word is also accepted.
+function normalize(str){
+  return str.toLowerCase().trim().replace(/-+$/, "").replace(/\s+/g, "");
+}
+
+const quizEl = document.getElementById("quiz");
+let correctCount = 0;
+let timeLeft = 300; // 5 minutes
+let timerId = null;
+const inputs = [];
+
+data.forEach((item, idx) => {
+  const row = document.createElement("div");
+  row.className = "item";
+
+  const line = document.createElement("div");
+  line.className = "line";
+
+  const num = document.createElement("span");
+  num.className = "num";
+  num.textContent = (idx + 1) + ".";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "answer";
+  input.autocomplete = "off";
+  input.autocapitalize = "off";
+  input.spellcheck = false;
+  input.maxLength = 20;
+  input.placeholder = "…";
+
+  const stem = document.createElement("span");
+  stem.className = "stem";
+  stem.textContent = item.stem;
+
+  // Hidden until the pop-up is closed after time is up
+  const reveal = document.createElement("div");
+  reveal.className = "reveal";
+  reveal.textContent = "Correct answer: " + item.prefixes.map(p => p + item.stem).join(" OR ");
+
+  // No live validation: colours appear only after Check / when time runs out
+  input.addEventListener("input", () => input.classList.remove("correct", "incorrect"));
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter"){
+      e.preventDefault();
+      const next = inputs[idx + 1];
+      if (next) next.input.focus();
+    }
+  });
+
+  line.appendChild(num);
+  line.appendChild(input);
+  line.appendChild(stem);
+  row.appendChild(line);
+  row.appendChild(reveal);
+  quizEl.appendChild(row);
+  inputs.push({ input, item });
+});
+
+function isCorrect(typed, item){
+  return item.prefixes.some(p => typed === p || typed === p + item.stem);
+}
+
+function gradeAll(){
+  let count = 0;
+  inputs.forEach(({ input, item }) => {
+    const typed = normalize(input.value);
+    if (typed === ""){
+      input.classList.remove("correct", "incorrect");
+      return;
+    }
+    const ok = isCorrect(typed, item);
+    if (ok) count++;
+    input.classList.toggle("correct", ok);
+    input.classList.toggle("incorrect", !ok);
+  });
+  correctCount = count;
+  document.getElementById("score").textContent = correctCount + " / " + data.length + " correct";
+}
+
+function formatTime(t){
+  const m = Math.floor(t / 60).toString().padStart(2, "0");
+  const s = (t % 60).toString().padStart(2, "0");
+  return m + ":" + s;
+}
+
+function renderClock(){
+  const timerEl = document.getElementById("timer");
+  timerEl.textContent = formatTime(Math.max(timeLeft, 0));
+  if (timeLeft <= 10) timerEl.classList.add("warn");
+}
+
+function tick(){
+  timeLeft--;
+  renderClock();
+  if (timeLeft <= 0) endQuiz();
+}
+
+// Pressing Check before time is up ends the quiz at once: the clock jumps to 00:00
+// and the score pop-up appears (the correct answers follow when the pop-up is closed).
+function finishNow(){
+  timeLeft = 0;
+  renderClock();
+  endQuiz();
+}
+
+let finished = false;
+function endQuiz(){
+  if (finished) return;
+  finished = true;
+  clearInterval(timerId);
+  gradeAll();
+  // Unanswered fields are marked red at the end so students see what they missed
+  inputs.forEach(({ input }) => {
+    if (input.value.trim() === "") input.classList.add("incorrect");
+    input.disabled = true;
+  });
+  document.getElementById("check-btn").disabled = true;
+
+  const [emoji, message] = scoreMessages[correctCount] || scoreMessages[0];
+  document.getElementById("finish-emoji").textContent = emoji;
+  document.getElementById("finish-title").textContent = message;
+  document.getElementById("final-score").textContent =
+    "You got " + correctCount + " out of " + data.length + " correct.";
+  document.getElementById("finish-overlay").style.display = "flex";
+}
+
+// Closing the pop-up keeps all answers in place and now reveals the correct answers
+function closePopup(){
+  document.getElementById("finish-overlay").style.display = "none";
+  document.body.classList.add("show-answers");
+}
+
+function toggleTheme(){
+  const html = document.documentElement;
+  const btn = document.getElementById("theme-toggle");
+  if (html.getAttribute("data-theme") === "light"){
+    html.removeAttribute("data-theme");
+    btn.textContent = "☀ Light";
+  } else {
+    html.setAttribute("data-theme", "light");
+    btn.textContent = "🌙 Dark";
+  }
+}
+
+timerId = setInterval(tick, 1000);
+</script>
+</body>
+</html>
